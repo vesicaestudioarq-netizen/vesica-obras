@@ -1,29 +1,30 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { query } = require('../db');
 
-router.get('/:obraId', (req, res) => {
-  const rows = db.prepare('SELECT * FROM adicionales WHERE obra_id=? ORDER BY fecha DESC').all(req.params.obraId);
-  res.json(rows);
+router.get('/:obraId', async (req, res) => {
+  const result = await query('SELECT * FROM adicionales WHERE obra_id=$1 ORDER BY fecha DESC', [req.params.obraId]);
+  res.json(result.rows);
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { obra_id, fecha, monto, descripcion, estado, cobrado, numero_factura } = req.body;
-  const result = db.prepare(
-    'INSERT INTO adicionales (obra_id, fecha, monto, descripcion, estado, cobrado, numero_factura) VALUES (?,?,?,?,?,?,?)'
-  ).run(obra_id, fecha, monto, descripcion, estado || 'pendiente', cobrado ? 1 : 0, numero_factura || null);
-  res.json({ id: result.lastInsertRowid });
+  const result = await query(
+    'INSERT INTO adicionales (obra_id, fecha, monto, descripcion, estado, cobrado, numero_factura) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+    [obra_id, fecha, monto, descripcion, estado || 'pendiente', !!cobrado, numero_factura || null]
+  );
+  res.json({ id: result.rows[0].id });
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { fecha, monto, descripcion, estado, cobrado, numero_factura } = req.body;
-  db.prepare('UPDATE adicionales SET fecha=?, monto=?, descripcion=?, estado=?, cobrado=?, numero_factura=? WHERE id=?')
-    .run(fecha, monto, descripcion, estado, cobrado ? 1 : 0, numero_factura || null, req.params.id);
+  await query('UPDATE adicionales SET fecha=$1, monto=$2, descripcion=$3, estado=$4, cobrado=$5, numero_factura=$6 WHERE id=$7',
+    [fecha, monto, descripcion, estado, !!cobrado, numero_factura || null, req.params.id]);
   res.json({ ok: true });
 });
 
-router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM adicionales WHERE id=?').run(req.params.id);
+router.delete('/:id', async (req, res) => {
+  await query('DELETE FROM adicionales WHERE id=$1', [req.params.id]);
   res.json({ ok: true });
 });
 

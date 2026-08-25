@@ -1,38 +1,40 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { query } = require('../db');
 
-router.get('/', (req, res) => {
-  const proveedores = db.prepare('SELECT * FROM proveedores ORDER BY nombre').all();
-  res.json(proveedores);
+router.get('/', async (req, res) => {
+  const result = await query('SELECT * FROM proveedores ORDER BY nombre');
+  res.json(result.rows);
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { nombre, rubro_especialidad, contacto, email, telefono, cuit } = req.body;
-  const result = db.prepare('INSERT INTO proveedores (nombre, rubro_especialidad, contacto, email, telefono, cuit) VALUES (?,?,?,?,?,?)')
-    .run(nombre, rubro_especialidad, contacto, email, telefono, cuit);
-  res.json({ id: result.lastInsertRowid });
+  const result = await query(
+    'INSERT INTO proveedores (nombre, rubro_especialidad, contacto, email, telefono, cuit) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
+    [nombre, rubro_especialidad, contacto, email, telefono, cuit]
+  );
+  res.json({ id: result.rows[0].id });
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { nombre, rubro_especialidad, contacto, email, telefono, cuit } = req.body;
-  db.prepare('UPDATE proveedores SET nombre=?, rubro_especialidad=?, contacto=?, email=?, telefono=?, cuit=? WHERE id=?')
-    .run(nombre, rubro_especialidad, contacto, email, telefono, cuit, req.params.id);
+  await query('UPDATE proveedores SET nombre=$1, rubro_especialidad=$2, contacto=$3, email=$4, telefono=$5, cuit=$6 WHERE id=$7',
+    [nombre, rubro_especialidad, contacto, email, telefono, cuit, req.params.id]);
   res.json({ ok: true });
 });
 
-router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM proveedores WHERE id = ?').run(req.params.id);
+router.delete('/:id', async (req, res) => {
+  await query('DELETE FROM proveedores WHERE id = $1', [req.params.id]);
   res.json({ ok: true });
 });
 
-// Pagos por proveedor en una obra
-router.get('/:id/pagos/:obraId', (req, res) => {
-  const pagos = db.prepare(`
+router.get('/:id/pagos/:obraId', async (req, res) => {
+  const result = await query(`
     SELECT e.*, r.nombre as rubro_nombre FROM egresos e
     LEFT JOIN rubros r ON r.id = e.rubro_id
-    WHERE e.proveedor_id=? AND e.obra_id=? ORDER BY e.fecha DESC
-  `).all(req.params.id, req.params.obraId);
+    WHERE e.proveedor_id=$1 AND e.obra_id=$2 ORDER BY e.fecha DESC
+  `, [req.params.id, req.params.obraId]);
+  const pagos = result.rows;
   const total = pagos.reduce((s, p) => s + p.monto, 0);
   res.json({ pagos, total });
 });
