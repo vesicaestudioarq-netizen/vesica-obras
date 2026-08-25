@@ -67,6 +67,12 @@ export const api = {
   updateEgreso: (id: number, data: unknown) => req('PUT', `/transacciones/egresos/${id}`, data),
   deleteEgreso: (id: number) => req('DELETE', `/transacciones/egresos/${id}`),
 
+  // Catálogo de rubros
+  getCatalogo: () => req('GET', '/catalogo'),
+  createCatalogo: (data: unknown) => req('POST', '/catalogo', data),
+  updateCatalogo: (id: number, data: unknown) => req('PUT', `/catalogo/${id}`, data),
+  deleteCatalogo: (id: number) => req('DELETE', `/catalogo/${id}`),
+
   // Adicionales
   getAdicionales: (obraId: number) => req('GET', `/adicionales/${obraId}`),
   createAdicional: (data: unknown) => req('POST', '/adicionales', data),

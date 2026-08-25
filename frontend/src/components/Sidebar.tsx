@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, HardHat, Users, LogOut, UserCog } from 'lucide-react';
+import { LayoutDashboard, HardHat, Users, LogOut, UserCog, Settings } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 
 const links = [
@@ -48,6 +48,17 @@ export default function Sidebar() {
             {label}
           </NavLink>
         ))}
+        <NavLink
+          to="/configuracion"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              isActive ? 'bg-beige/15 text-beige' : 'text-beige/60 hover:bg-beige/10 hover:text-beige'
+            }`
+          }
+        >
+          <Settings size={18} />
+          Configuración
+        </NavLink>
         {user?.rol === 'admin' && (
           <NavLink
             to="/usuarios"

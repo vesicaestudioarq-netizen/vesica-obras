@@ -7,6 +7,7 @@ import Obras from './pages/Obras';
 import ObraDetalle from './pages/ObraDetalle';
 import Proveedores from './pages/Proveedores';
 import Usuarios from './pages/Usuarios';
+import Configuracion from './pages/Configuracion';
 import Login from './pages/Login';
 
 function PrivateLayout() {
@@ -23,6 +24,7 @@ function PrivateLayout() {
           <Route path="/obras/:id" element={<ObraDetalle />} />
           <Route path="/proveedores" element={<Proveedores />} />
           <Route path="/usuarios" element={<Usuarios />} />
+          <Route path="/configuracion" element={<Configuracion />} />
         </Routes>
       </main>
     </div>

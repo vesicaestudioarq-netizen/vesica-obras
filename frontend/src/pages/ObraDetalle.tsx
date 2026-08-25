@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import {
   ArrowLeft, Plus, Trash2, Edit, Download, TrendingUp, TrendingDown,
-  Wallet, AlertCircle, Tag, Users, BarChart3, FileText
+  Wallet, AlertCircle, Tag, Users, BarChart3, FileText, BookOpen
 } from 'lucide-react';
 
 const TABS = ['Resumen', 'Cash Flow', 'Ingresos', 'Egresos', 'Rubros', 'Proveedores', 'Adicionales'];
@@ -30,6 +30,9 @@ export default function ObraDetalle() {
   const [rubros, setRubros] = useState<any[]>([]);
   const [proveedores, setProveedores] = useState<any[]>([]);
   const [adicionales, setAdicionales] = useState<any[]>([]);
+  const [catalogo, setCatalogo] = useState<any[]>([]);
+  const [modalCatalogo, setModalCatalogo] = useState(false);
+  const [seleccionados, setSeleccionados] = useState<Record<number, { checked: boolean; presupuesto: string }>>({});
 
   // Modals
   const [modalIngreso, setModalIngreso] = useState(false);
@@ -52,7 +55,7 @@ export default function ObraDetalle() {
   const [formAdicional, setFormAdicional] = useState<any>({ ...emptyAdicional });
 
   const loadAll = useCallback(async () => {
-    const [res, cf, ing, egr, rub, prov, adic] = await Promise.all([
+    const [res, cf, ing, egr, rub, prov, adic, cat] = await Promise.all([
       api.getResumen(obraId),
       api.getCashflow(obraId),
       api.getIngresos(obraId),
@@ -60,6 +63,7 @@ export default function ObraDetalle() {
       api.getRubros(obraId),
       api.getProveedores(),
       api.getAdicionales(obraId),
+      api.getCatalogo(),
     ]);
     setResumen(res);
     setCashflow(cf);
@@ -68,6 +72,7 @@ export default function ObraDetalle() {
     setRubros(rub);
     setProveedores(prov);
     setAdicionales(adic);
+    setCatalogo(cat);
   }, [obraId]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
@@ -116,6 +121,24 @@ export default function ObraDetalle() {
     setModalRubro(false); loadAll();
   };
   const delRubro = async (id: number) => { if (!confirm('¿Eliminar rubro?')) return; await api.deleteRubro(id); loadAll(); };
+
+  const openCatalogo = () => {
+    const rubroNombresExistentes = rubros.map((r: any) => r.nombre.toLowerCase());
+    const init: Record<number, { checked: boolean; presupuesto: string }> = {};
+    catalogo.forEach(c => {
+      init[c.id] = { checked: false, presupuesto: '' };
+    });
+    setSeleccionados(init);
+    setModalCatalogo(true);
+  };
+  const agregarDesdeCatalogo = async () => {
+    const elegidos = catalogo.filter(c => seleccionados[c.id]?.checked);
+    await Promise.all(elegidos.map(c =>
+      api.createRubro({ obra_id: obraId, nombre: c.nombre, color: c.color, descripcion: c.descripcion, presupuesto: parseFloat(seleccionados[c.id].presupuesto) || 0 })
+    ));
+    setModalCatalogo(false);
+    loadAll();
+  };
 
   // --- ADICIONALES ---
   const openCreateAdicional = () => { setEditingAdicional(null); setFormAdicional({ ...emptyAdicional }); setModalAdicional(true); };
@@ -390,7 +413,12 @@ export default function ObraDetalle() {
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <p className="text-sm text-slate-500">{rubros.length} rubro{rubros.length !== 1 ? 's' : ''} definido{rubros.length !== 1 ? 's' : ''}</p>
-            <button onClick={openCreateRubro} className="btn-primary flex items-center gap-2"><Plus size={15} /> Nuevo rubro</button>
+            <div className="flex gap-2">
+              {catalogo.length > 0 && (
+                <button onClick={openCatalogo} className="btn-secondary flex items-center gap-2"><BookOpen size={15} /> Desde catálogo</button>
+              )}
+              <button onClick={openCreateRubro} className="btn-primary flex items-center gap-2"><Plus size={15} /> Nuevo rubro</button>
+            </div>
           </div>
 
           {/* Resumen total de deudas */}
@@ -673,6 +701,49 @@ export default function ObraDetalle() {
           <div className="flex justify-end gap-2 mt-6">
             <button onClick={() => setModalRubro(false)} className="btn-secondary">Cancelar</button>
             <button onClick={saveRubro} className="btn-primary" disabled={!formRubro.nombre}>Guardar</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL CATÁLOGO */}
+      {modalCatalogo && (
+        <Modal title="Agregar rubros desde catálogo" onClose={() => setModalCatalogo(false)} wide>
+          <p className="text-sm text-slate-500 mb-4">Seleccioná los rubros que aplican a esta obra y asignales un presupuesto.</p>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {catalogo.map(c => (
+              <div key={c.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${seleccionados[c.id]?.checked ? 'border-primary/40 bg-primary/5' : 'border-slate-100'}`}>
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 accent-primary"
+                  checked={seleccionados[c.id]?.checked || false}
+                  onChange={e => setSeleccionados(s => ({ ...s, [c.id]: { ...s[c.id], checked: e.target.checked } }))}
+                />
+                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                <span className="font-medium text-slate-700 flex-1">{c.nombre}</span>
+                {seleccionados[c.id]?.checked && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-slate-400">Presupuesto</label>
+                    <input
+                      type="number"
+                      className="input w-36 text-sm py-1"
+                      placeholder="0"
+                      value={seleccionados[c.id].presupuesto}
+                      onChange={e => setSeleccionados(s => ({ ...s, [c.id]: { ...s[c.id], presupuesto: e.target.value } }))}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 mt-6">
+            <button onClick={() => setModalCatalogo(false)} className="btn-secondary">Cancelar</button>
+            <button
+              onClick={agregarDesdeCatalogo}
+              className="btn-primary"
+              disabled={!catalogo.some(c => seleccionados[c.id]?.checked)}
+            >
+              Agregar seleccionados
+            </button>
           </div>
         </Modal>
       )}

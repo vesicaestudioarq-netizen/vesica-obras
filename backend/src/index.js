@@ -12,6 +12,7 @@ const { router: authRouter, authMiddleware } = require('./routes/auth');
 app.use('/api/auth', authRouter);
 app.use('/api/obras', authMiddleware, require('./routes/obras'));
 app.use('/api/adicionales', authMiddleware, require('./routes/adicionales'));
+app.use('/api/catalogo', authMiddleware, require('./routes/catalogo'));
 app.use('/api/rubros', authMiddleware, require('./routes/rubros'));
 app.use('/api/proveedores', authMiddleware, require('./routes/proveedores'));
 

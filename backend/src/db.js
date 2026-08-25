@@ -80,6 +80,14 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS rubros_catalogo (
+      id SERIAL PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      color TEXT DEFAULT '#6366f1',
+      descripcion TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS adicionales (
       id SERIAL PRIMARY KEY,
       obra_id INTEGER NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
