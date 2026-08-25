@@ -11,7 +11,8 @@ import {
   Wallet, AlertCircle, Tag, Users, BarChart3, FileText
 } from 'lucide-react';
 
-const TABS = ['Resumen', 'Cash Flow', 'Ingresos', 'Egresos', 'Rubros', 'Proveedores'];
+const TABS = ['Resumen', 'Cash Flow', 'Ingresos', 'Egresos', 'Rubros', 'Proveedores', 'Adicionales'];
+const ESTADOS_ADICIONAL = ['pendiente', 'aprobado', 'rechazado'];
 const COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6'];
 
 const TIPOS_INGRESO = ['cuota', 'anticipo', 'certificado', 'adicional', 'otro'];
@@ -28,6 +29,7 @@ export default function ObraDetalle() {
   const [egresos, setEgresos] = useState<any[]>([]);
   const [rubros, setRubros] = useState<any[]>([]);
   const [proveedores, setProveedores] = useState<any[]>([]);
+  const [adicionales, setAdicionales] = useState<any[]>([]);
 
   // Modals
   const [modalIngreso, setModalIngreso] = useState(false);
@@ -36,23 +38,28 @@ export default function ObraDetalle() {
   const [editingIngreso, setEditingIngreso] = useState<any>(null);
   const [editingEgreso, setEditingEgreso] = useState<any>(null);
   const [editingRubro, setEditingRubro] = useState<any>(null);
+  const [modalAdicional, setModalAdicional] = useState(false);
+  const [editingAdicional, setEditingAdicional] = useState<any>(null);
 
   const emptyIngreso = { fecha: new Date().toISOString().slice(0,10), monto: '', descripcion: '', tipo: 'cuota', numero_cuota: '' };
   const emptyEgreso = { fecha: new Date().toISOString().slice(0,10), monto: '', descripcion: '', rubro_id: '', proveedor_id: '', numero_factura: '', estado: 'pagado' };
   const emptyRubro = { nombre: '', presupuesto: '', descripcion: '', color: '#6366f1' };
+  const emptyAdicional = { fecha: new Date().toISOString().slice(0,10), monto: '', descripcion: '', estado: 'pendiente', cobrado: false, numero_factura: '' };
 
   const [formIngreso, setFormIngreso] = useState({ ...emptyIngreso });
   const [formEgreso, setFormEgreso] = useState({ ...emptyEgreso });
   const [formRubro, setFormRubro] = useState({ ...emptyRubro });
+  const [formAdicional, setFormAdicional] = useState<any>({ ...emptyAdicional });
 
   const loadAll = useCallback(async () => {
-    const [res, cf, ing, egr, rub, prov] = await Promise.all([
+    const [res, cf, ing, egr, rub, prov, adic] = await Promise.all([
       api.getResumen(obraId),
       api.getCashflow(obraId),
       api.getIngresos(obraId),
       api.getEgresos(obraId),
       api.getRubros(obraId),
       api.getProveedores(),
+      api.getAdicionales(obraId),
     ]);
     setResumen(res);
     setCashflow(cf);
@@ -60,6 +67,7 @@ export default function ObraDetalle() {
     setEgresos(egr);
     setRubros(rub);
     setProveedores(prov);
+    setAdicionales(adic);
   }, [obraId]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
@@ -108,6 +116,21 @@ export default function ObraDetalle() {
     setModalRubro(false); loadAll();
   };
   const delRubro = async (id: number) => { if (!confirm('¿Eliminar rubro?')) return; await api.deleteRubro(id); loadAll(); };
+
+  // --- ADICIONALES ---
+  const openCreateAdicional = () => { setEditingAdicional(null); setFormAdicional({ ...emptyAdicional }); setModalAdicional(true); };
+  const openEditAdicional = (a: any) => {
+    setEditingAdicional(a);
+    setFormAdicional({ fecha: a.fecha, monto: a.monto, descripcion: a.descripcion, estado: a.estado, cobrado: !!a.cobrado, numero_factura: a.numero_factura || '' });
+    setModalAdicional(true);
+  };
+  const saveAdicional = async () => {
+    const data = { ...formAdicional, obra_id: obraId, monto: parseFloat(String(formAdicional.monto)) };
+    if (editingAdicional) await api.updateAdicional(editingAdicional.id, data);
+    else await api.createAdicional(data);
+    setModalAdicional(false); loadAll();
+  };
+  const delAdicional = async (id: number) => { if (!confirm('¿Eliminar adicional?')) return; await api.deleteAdicional(id); loadAll(); };
 
   if (!resumen) return <div className="p-8 text-slate-400">Cargando...</div>;
 
@@ -466,6 +489,74 @@ export default function ObraDetalle() {
         </div>
       )}
 
+      {/* TAB: ADICIONALES */}
+      {tab === 'Adicionales' && (
+        <div className="space-y-4">
+          {/* KPIs */}
+          {(() => {
+            const totalAdic = adicionales.reduce((s, a) => s + a.monto, 0);
+            const aprobados = adicionales.filter(a => a.estado === 'aprobado').reduce((s, a) => s + a.monto, 0);
+            const cobrados = adicionales.filter(a => a.cobrado).reduce((s, a) => s + a.monto, 0);
+            const pendCobro = adicionales.filter(a => a.estado === 'aprobado' && !a.cobrado).reduce((s, a) => s + a.monto, 0);
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'Total adicionales', value: fmt(totalAdic, moneda), color: 'text-slate-700', bg: 'bg-slate-50' },
+                  { label: 'Aprobados', value: fmt(aprobados, moneda), color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                  { label: 'Cobrados', value: fmt(cobrados, moneda), color: 'text-primary', bg: 'bg-green-50' },
+                  { label: 'Pendiente cobro', value: fmt(pendCobro, moneda), color: pendCobro > 0 ? 'text-amber-600' : 'text-slate-400', bg: 'bg-amber-50' },
+                ].map(s => (
+                  <div key={s.label} className={`card flex flex-col gap-1 ${s.bg} border-0`}>
+                    <div className="text-xs text-slate-500">{s.label}</div>
+                    <div className={`font-bold text-base ${s.color}`}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-slate-500">{adicionales.length} adicional{adicionales.length !== 1 ? 'es' : ''} · Fuera del presupuesto original</p>
+            <button onClick={openCreateAdicional} className="btn-primary flex items-center gap-2"><Plus size={15} /> Nuevo adicional</button>
+          </div>
+          <div className="card overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-xs text-slate-400 border-b border-slate-100">
+                <th className="pb-2">Fecha</th>
+                <th className="pb-2">Descripción</th>
+                <th className="pb-2">Estado</th>
+                <th className="pb-2">Factura</th>
+                <th className="pb-2">Cobrado</th>
+                <th className="pb-2 text-right">Monto</th>
+                <th className="pb-2"></th>
+              </tr></thead>
+              <tbody>
+                {adicionales.map(a => (
+                  <tr key={a.id} className="border-b border-slate-50 hover:bg-slate-50">
+                    <td className="py-2 text-slate-400 whitespace-nowrap">{a.fecha}</td>
+                    <td className="py-2 max-w-[220px] truncate">{a.descripcion}</td>
+                    <td className="py-2">
+                      <span className={a.estado === 'aprobado' ? 'badge-success' : a.estado === 'rechazado' ? 'badge-danger' : 'badge-warning'}>{a.estado}</span>
+                    </td>
+                    <td className="py-2 text-slate-400">{a.numero_factura || '-'}</td>
+                    <td className="py-2">
+                      <span className={a.cobrado ? 'badge-success' : 'text-slate-300 text-xs'}>{a.cobrado ? 'Sí' : 'No'}</span>
+                    </td>
+                    <td className="py-2 text-right font-bold text-slate-700">{fmt(a.monto, moneda)}</td>
+                    <td className="py-2 text-right">
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => openEditAdicional(a)} className="text-slate-300 hover:text-primary"><Edit size={14} /></button>
+                        <button onClick={() => delAdicional(a.id)} className="text-slate-300 hover:text-red-500"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {adicionales.length === 0 && <tr><td colSpan={7} className="py-10 text-center text-slate-400">Sin adicionales registrados</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* MODAL INGRESO */}
       {modalIngreso && (
         <Modal title={editingIngreso ? 'Editar ingreso' : 'Registrar ingreso'} onClose={() => setModalIngreso(false)}>
@@ -532,6 +623,31 @@ export default function ObraDetalle() {
           <div className="flex justify-end gap-2 mt-6">
             <button onClick={() => setModalRubro(false)} className="btn-secondary">Cancelar</button>
             <button onClick={saveRubro} className="btn-primary" disabled={!formRubro.nombre}>Guardar</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL ADICIONAL */}
+      {modalAdicional && (
+        <Modal title={editingAdicional ? 'Editar adicional' : 'Nuevo adicional'} onClose={() => setModalAdicional(false)} wide>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="label">Fecha *</label><input type="date" className="input" value={formAdicional.fecha} onChange={e => setFormAdicional((f: any) => ({ ...f, fecha: e.target.value }))} /></div>
+            <div><label className="label">Monto *</label><input type="number" className="input" value={formAdicional.monto} onChange={e => setFormAdicional((f: any) => ({ ...f, monto: e.target.value }))} placeholder="0" /></div>
+            <div className="col-span-2"><label className="label">Descripción *</label><input className="input" value={formAdicional.descripcion} onChange={e => setFormAdicional((f: any) => ({ ...f, descripcion: e.target.value }))} placeholder="Ej: Ampliación de living" /></div>
+            <div><label className="label">Estado</label>
+              <select className="input" value={formAdicional.estado} onChange={e => setFormAdicional((f: any) => ({ ...f, estado: e.target.value }))}>
+                {ESTADOS_ADICIONAL.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div><label className="label">N° Factura</label><input className="input" value={formAdicional.numero_factura} onChange={e => setFormAdicional((f: any) => ({ ...f, numero_factura: e.target.value }))} placeholder="Ej: A-0001" /></div>
+            <div className="col-span-2 flex items-center gap-3">
+              <input type="checkbox" id="cobrado" className="w-4 h-4 accent-primary" checked={formAdicional.cobrado} onChange={e => setFormAdicional((f: any) => ({ ...f, cobrado: e.target.checked }))} />
+              <label htmlFor="cobrado" className="label cursor-pointer mb-0">Ya cobrado</label>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-6">
+            <button onClick={() => setModalAdicional(false)} className="btn-secondary">Cancelar</button>
+            <button onClick={saveAdicional} className="btn-primary" disabled={!formAdicional.monto || !formAdicional.fecha || !formAdicional.descripcion}>Guardar</button>
           </div>
         </Modal>
       )}

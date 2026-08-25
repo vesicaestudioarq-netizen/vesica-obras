@@ -71,4 +71,20 @@ db.exec(`
   );
 `);
 
+// Tabla de adicionales (fuera del presupuesto original)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS adicionales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    obra_id INTEGER NOT NULL,
+    fecha TEXT NOT NULL,
+    monto REAL NOT NULL,
+    descripcion TEXT NOT NULL,
+    estado TEXT DEFAULT 'pendiente',
+    cobrado INTEGER DEFAULT 0,
+    numero_factura TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (obra_id) REFERENCES obras(id) ON DELETE CASCADE
+  );
+`);
+
 module.exports = db;

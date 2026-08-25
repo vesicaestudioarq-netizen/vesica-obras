@@ -12,6 +12,7 @@ app.use('/api/auth', authRouter);
 
 // Todas las rutas de datos requieren autenticación
 app.use('/api/obras', authMiddleware, require('./routes/obras'));
+app.use('/api/adicionales', authMiddleware, require('./routes/adicionales'));
 app.use('/api/rubros', authMiddleware, require('./routes/rubros'));
 app.use('/api/proveedores', authMiddleware, require('./routes/proveedores'));
 // Exportar Excel permite token por query param (para window.open)

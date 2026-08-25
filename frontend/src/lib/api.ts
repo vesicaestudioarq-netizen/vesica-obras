@@ -67,6 +67,12 @@ export const api = {
   updateEgreso: (id: number, data: unknown) => req('PUT', `/transacciones/egresos/${id}`, data),
   deleteEgreso: (id: number) => req('DELETE', `/transacciones/egresos/${id}`),
 
+  // Adicionales
+  getAdicionales: (obraId: number) => req('GET', `/adicionales/${obraId}`),
+  createAdicional: (data: unknown) => req('POST', '/adicionales', data),
+  updateAdicional: (id: number, data: unknown) => req('PUT', `/adicionales/${id}`, data),
+  deleteAdicional: (id: number) => req('DELETE', `/adicionales/${id}`),
+
   exportarExcel: (obraId: number) => {
     window.open(`${BASE}/transacciones/exportar/${obraId}?token=${getToken()}`, '_blank');
   },
