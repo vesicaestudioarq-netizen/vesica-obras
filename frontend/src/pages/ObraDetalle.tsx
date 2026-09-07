@@ -186,7 +186,7 @@ export default function ObraDetalle() {
           { label: 'Por cobrar', value: fmt(porCobrar, moneda), icon: AlertCircle, color: porCobrar > 0 ? 'text-amber-600' : 'text-slate-400', bg: 'bg-amber-50' },
           { label: 'Pagado', value: fmt(totalEgresos, moneda), icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-50' },
           { label: 'Saldo en caja', value: fmt(saldoCaja, moneda), icon: Wallet, color: saldoCaja >= 0 ? 'text-emerald-600' : 'text-red-600', bg: saldoCaja >= 0 ? 'bg-emerald-50' : 'bg-red-50' },
-          { label: 'Deuda rubros', value: fmt(egresosPendientes, moneda), icon: AlertCircle, color: egresosPendientes > 0 ? 'text-amber-600' : 'text-slate-400', bg: 'bg-amber-50' },
+          { label: 'Falta pagar rubros', value: fmt(rubros.reduce((s, r) => s + Math.max(0, r.presupuesto - r.gastado), 0), moneda), icon: AlertCircle, color: rubros.reduce((s, r) => s + Math.max(0, r.presupuesto - r.gastado), 0) > 0 ? 'text-amber-600' : 'text-slate-400', bg: 'bg-amber-50' },
         ].map(s => (
           <div key={s.label} className={`card flex flex-col gap-2 ${s.bg} border-0`}>
             <s.icon size={16} className={s.color} />
@@ -425,8 +425,8 @@ export default function ObraDetalle() {
           {rubros.length > 0 && (() => {
             const totalPresup = rubros.reduce((s, r) => s + r.presupuesto, 0);
             const totalPagado = rubros.reduce((s, r) => s + r.gastado, 0);
-            const totalDeuda  = rubros.reduce((s, r) => s + r.pendiente, 0);
-            const totalDisp   = totalPresup - totalPagado - totalDeuda;
+            const totalDeuda  = rubros.reduce((s, r) => s + Math.max(0, r.presupuesto - r.gastado), 0);
+            const totalDisp   = totalPresup - totalPagado;
             return (
               <div className="card bg-amber-50 border border-amber-100">
                 <h4 className="text-sm font-bold text-amber-800 mb-3">Resumen de deudas por rubro</h4>
@@ -440,23 +440,23 @@ export default function ObraDetalle() {
                     <div className="font-bold text-emerald-600">{fmt(totalPagado, moneda)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-slate-500">Deuda pendiente</div>
-                    <div className={`font-bold text-lg ${totalDeuda > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{fmt(totalDeuda, moneda)}</div>
+                    <div className="text-xs text-slate-500">Falta pagar (total)</div>
+                    <div className={`font-bold text-lg ${totalDeuda > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{fmt(totalDeuda, moneda)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-slate-500">Disponible</div>
+                    <div className="text-xs text-slate-500">Ya pagado</div>
                     <div className={`font-bold ${totalDisp >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(totalDisp, moneda)}</div>
                   </div>
                 </div>
                 {totalDeuda > 0 && (
                   <div className="mt-3 pt-3 border-t border-amber-200 space-y-1">
-                    {rubros.filter(r => r.pendiente > 0).map(r => (
+                    {rubros.filter(r => r.presupuesto - r.gastado > 0).map(r => (
                       <div key={r.id} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: r.color }} />
                           <span className="text-slate-700">{r.nombre}</span>
                         </div>
-                        <span className="font-semibold text-amber-700">{fmt(r.pendiente, moneda)} pendiente</span>
+                        <span className="font-semibold text-amber-700">{fmt(r.presupuesto - r.gastado, moneda)} falta pagar</span>
                       </div>
                     ))}
                   </div>
@@ -491,8 +491,8 @@ export default function ObraDetalle() {
                       <div className="font-semibold text-emerald-600">{fmt(r.gastado, moneda)}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xs text-slate-400">Deuda</div>
-                      <div className={`font-semibold ${r.pendiente > 0 ? 'text-amber-500' : 'text-slate-300'}`}>{fmt(r.pendiente, moneda)}</div>
+                      <div className="text-xs text-slate-400">Falta pagar</div>
+                      <div className={`font-semibold ${(r.presupuesto - r.gastado) > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>{fmt(Math.max(0, r.presupuesto - r.gastado), moneda)}</div>
                     </div>
                     <div className="text-center">
                       <div className="text-xs text-slate-400">Disponible</div>
