@@ -8,8 +8,9 @@ import {
 } from 'recharts';
 import {
   ArrowLeft, Plus, Trash2, Edit, Download, TrendingUp, TrendingDown,
-  Wallet, AlertCircle, Tag, Users, BarChart3, FileText, BookOpen
+  Wallet, AlertCircle, Tag, Users, BarChart3, FileText, BookOpen, Receipt
 } from 'lucide-react';
+import { generarReciboIngreso, generarReciboEgreso } from '../lib/recibos';
 
 const TABS = ['Resumen', 'Cash Flow', 'Ingresos', 'Egresos', 'Rubros', 'Proveedores', 'Adicionales'];
 const ESTADOS_ADICIONAL = ['pendiente', 'aprobado', 'rechazado'];
@@ -355,6 +356,7 @@ export default function ObraDetalle() {
                     <td className="py-2 text-right font-bold text-emerald-600">+{fmt(i.monto, moneda)}</td>
                     <td className="py-2 text-right">
                       <div className="flex gap-2 justify-end">
+                        <button onClick={() => generarReciboIngreso(i, obra)} title="Descargar recibo PDF" className="text-slate-300 hover:text-accent"><Receipt size={14} /></button>
                         <button onClick={() => openEditIngreso(i)} className="text-slate-300 hover:text-primary"><Edit size={14} /></button>
                         <button onClick={() => delIngreso(i.id)} className="text-slate-300 hover:text-red-500"><Trash2 size={14} /></button>
                       </div>
@@ -395,6 +397,7 @@ export default function ObraDetalle() {
                     <td className="py-2 text-right font-bold text-red-500">-{fmt(e.monto, moneda)}</td>
                     <td className="py-2 text-right">
                       <div className="flex gap-2 justify-end">
+                        <button onClick={() => generarReciboEgreso(e, obra)} title="Descargar comprobante PDF" className="text-slate-300 hover:text-accent"><Receipt size={14} /></button>
                         <button onClick={() => openEditEgreso(e)} className="text-slate-300 hover:text-primary"><Edit size={14} /></button>
                         <button onClick={() => delEgreso(e.id)} className="text-slate-300 hover:text-red-500"><Trash2 size={14} /></button>
                       </div>
