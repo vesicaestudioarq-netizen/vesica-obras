@@ -347,7 +347,7 @@ export default function ObraDetalle() {
                 <th className="pb-2">Fecha</th><th className="pb-2">Tipo</th><th className="pb-2">N° Cuota</th><th className="pb-2">Descripción</th><th className="pb-2 text-right">Monto</th><th className="pb-2"></th>
               </tr></thead>
               <tbody>
-                {ingresos.map(i => (
+                {ingresos.map((i, idx) => (
                   <tr key={i.id} className="border-b border-slate-50 hover:bg-slate-50">
                     <td className="py-2 text-slate-400">{i.fecha}</td>
                     <td className="py-2"><span className="badge-success">{i.tipo}</span></td>
@@ -356,7 +356,7 @@ export default function ObraDetalle() {
                     <td className="py-2 text-right font-bold text-emerald-600">+{fmt(i.monto, moneda)}</td>
                     <td className="py-2 text-right">
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => generarReciboIngreso(i, obra)} title="Descargar recibo PDF" className="text-slate-300 hover:text-accent"><Receipt size={14} /></button>
+                        <button onClick={() => generarReciboIngreso(i, obra, idx + 1)} title="Descargar recibo PDF" className="text-slate-300 hover:text-accent"><Receipt size={14} /></button>
                         <button onClick={() => openEditIngreso(i)} className="text-slate-300 hover:text-primary"><Edit size={14} /></button>
                         <button onClick={() => delIngreso(i.id)} className="text-slate-300 hover:text-red-500"><Trash2 size={14} /></button>
                       </div>
@@ -386,7 +386,7 @@ export default function ObraDetalle() {
                 <th className="pb-2">Fecha</th><th className="pb-2">Descripción</th><th className="pb-2">Rubro</th><th className="pb-2">Proveedor</th><th className="pb-2">Factura</th><th className="pb-2">Estado</th><th className="pb-2 text-right">Monto</th><th className="pb-2"></th>
               </tr></thead>
               <tbody>
-                {egresos.map(e => (
+                {egresos.map((e, idx) => (
                   <tr key={e.id} className="border-b border-slate-50 hover:bg-slate-50">
                     <td className="py-2 text-slate-400 whitespace-nowrap">{e.fecha}</td>
                     <td className="py-2 max-w-[200px] truncate">{e.descripcion}</td>
@@ -397,7 +397,7 @@ export default function ObraDetalle() {
                     <td className="py-2 text-right font-bold text-red-500">-{fmt(e.monto, moneda)}</td>
                     <td className="py-2 text-right">
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => generarReciboEgreso(e, obra)} title="Descargar comprobante PDF" className="text-slate-300 hover:text-accent"><Receipt size={14} /></button>
+                        <button onClick={() => generarReciboEgreso(e, obra, idx + 1)} title="Descargar comprobante PDF" className="text-slate-300 hover:text-accent"><Receipt size={14} /></button>
                         <button onClick={() => openEditEgreso(e)} className="text-slate-300 hover:text-primary"><Edit size={14} /></button>
                         <button onClick={() => delEgreso(e.id)} className="text-slate-300 hover:text-red-500"><Trash2 size={14} /></button>
                       </div>
